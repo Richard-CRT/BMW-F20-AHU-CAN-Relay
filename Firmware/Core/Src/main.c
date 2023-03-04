@@ -245,12 +245,33 @@ static void MX_FDCAN2_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(FDCAN2_S_GPIO_Port, FDCAN2_S_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(FDCAN1_S_GPIO_Port, FDCAN1_S_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : FDCAN2_S_Pin */
+  GPIO_InitStruct.Pin = FDCAN2_S_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(FDCAN2_S_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : FDCAN1_S_Pin */
+  GPIO_InitStruct.Pin = FDCAN1_S_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(FDCAN1_S_GPIO_Port, &GPIO_InitStruct);
 
 }
 
