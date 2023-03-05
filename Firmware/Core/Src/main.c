@@ -272,14 +272,14 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : FDCAN2_S_Pin */
   GPIO_InitStruct.Pin = FDCAN2_S_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(FDCAN2_S_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : FDCAN1_S_Pin */
   GPIO_InitStruct.Pin = FDCAN1_S_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(FDCAN1_S_GPIO_Port, &GPIO_InitStruct);
 
