@@ -34,9 +34,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.8,
-          "height": 1.35,
-          "width": 1.35
+          "drill": 1.0,
+          "height": 1.7,
+          "width": 1.7
         },
         "silk_line_width": 0.15,
         "silk_text_italic": false,
@@ -56,7 +56,11 @@
         }
       ],
       "drc_exclusions": [
-        "courtyards_overlap|37084001|56666001|c6439ddf-f6bf-4f63-b023-50851fc84de8|c894cf40-d721-43b8-b16d-f42c2d33cdab"
+        "courtyards_overlap|37084001|56666001|c6439ddf-f6bf-4f63-b023-50851fc84de8|c894cf40-d721-43b8-b16d-f42c2d33cdab",
+        "courtyards_overlap|74190001|68840001|40fa0028-f6ee-41e9-8941-188dc3e0d333|00e72d30-22fb-483d-9aaa-17ba99b84818",
+        "courtyards_overlap|76009999|66300001|40fa0028-f6ee-41e9-8941-188dc3e0d333|aa38c92f-9cb7-4d45-a154-e22444146f76",
+        "courtyards_overlap|87429001|61950001|2d02d6d0-bed6-47f7-9fe5-2e8958a6515f|0681afaf-f4c8-4a77-918b-6fe5be84b9db",
+        "courtyards_overlap|87429001|68270001|2d02d6d0-bed6-47f7-9fe5-2e8958a6515f|b021067b-fa83-42f0-8796-5a24abff380c"
       ],
       "meta": {
         "version": 2
@@ -180,7 +184,9 @@
         0.3,
         0.4,
         0.5,
-        0.7
+        0.7,
+        1.0,
+        1.35
       ],
       "via_dimensions": [
         {
@@ -188,8 +194,8 @@
           "drill": 0.0
         },
         {
-          "diameter": 1.0,
-          "drill": 0.6
+          "diameter": 0.8,
+          "drill": 0.4
         }
       ],
       "zones_allow_external_fillets": false
@@ -416,7 +422,9 @@
     "pinned_footprint_libs": [
       "libdb"
     ],
-    "pinned_symbol_libs": []
+    "pinned_symbol_libs": [
+      "libdb"
+    ]
   },
   "meta": {
     "filename": "main.kicad_pro",
