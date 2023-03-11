@@ -423,7 +423,9 @@
       "libdb"
     ],
     "pinned_symbol_libs": [
-      "libdb"
+      "libdb",
+      "[] Interfaces - CAN Tranceivers",
+      "[] MCUs_Processors - Arm Cortex-M0+"
     ]
   },
   "meta": {
