@@ -4,3 +4,4 @@
 !*.kicad_pro
 !*.kicad_sch
 !Output/
+Output/**/*.zip
