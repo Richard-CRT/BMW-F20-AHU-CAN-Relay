@@ -3,8 +3,9 @@ Comment,Designator,Footprint,LCSC Part #
 100n CAP CER 100nF 50V X7R 0402,"C3,C9,C10,C11,C12,C15,C17,C18",C_0402_1005Metric,C307331
 47p CAP CER 47pF 50V C0G 0402,C4,C_0402_1005Metric,C1567
 1u CAP CER 1uF 50V X7R 0805,C7,C_0805_2012Metric,C28323
-15p CAP CER 15pF 50V C0G 0402,"C13,C14",C_0402_1005Metric,C1548
+27p CAP CER 27pF 50V C0G 0402,"C13,C14",C_0402_1005Metric,C1557
 4.7u CAP CER 4.7uF 16V X5R 0603,C16,C_0603_1608Metric,C19666
+47u CAP ALUM 47UF 20% 25V SMD,C19,CP_Elec_6.3x5.8,C178545
 LED_B Blue LED Indication - Discrete 2.8V 0603 (1608 Metric),"D1,D2,D3",LED_0603_1608Metric,C72041
 Fuse Fuse Holder (Mini) Inline Horizontal Mount,F1,CMP-0026,C206906
 "8.2u 5A 8.2uH ±20% 54mΩ 6A SMD,6.6x7mm Power Inductors",L1,CMP-0058,C167222
@@ -22,4 +23,4 @@ TPS54302 Switching Voltage Regulators 5 to 28V Input 3A Step Down Converter ,U1,
 "XC6206P33 LDO Voltage Regulators 1uA Low Quiescent 3 Terminal, Low ESR Cap. Compatible, Voltage Regulator ",U2,CMP-0019,C5446
 TJA1051T/3 CAN Interface IC High-speed CAN transceiver ,"U3,U4",SOIC-8_3.9x4.9mm_P1.27mm,C38695
 STM32G0B1 ARM Microcontrollers - MCU Mainstream Arm Cortex-M0+ 32-bit MCU up to 128KB Flash 144KB RAM,U5,LQFP-48_7x7mm_P0.5mm,C2847904
-40M Crystal 40MHz 8pF SMD ,Y1,CMP-0004,C485379
+40M Crystal 40MHz 15pF SMD ,Y1,Crystal_SMD_3225-4Pin_3.2x2.5mm,C9010
