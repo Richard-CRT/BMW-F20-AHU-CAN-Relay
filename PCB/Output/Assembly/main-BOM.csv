@@ -5,7 +5,6 @@ Comment,Designator,Footprint,LCSC Part #
 1u CAP CER 1uF 50V X7R 0805,C7,C_0805_2012Metric,C28323
 27p CAP CER 27pF 50V C0G 0402,"C13,C14",C_0402_1005Metric,C1557
 4.7u CAP CER 4.7uF 16V X5R 0603,C16,C_0603_1608Metric,C19666
-47u CAP ALUM 47UF 20% 25V SMD,C19,CP_Elec_6.3x5.8,C178545
 LED_B Blue LED Indication - Discrete 2.8V 0603 (1608 Metric),"D1,D2,D3",LED_0603_1608Metric,C72041
 Fuse Fuse Holder (Mini) Inline Horizontal Mount,F1,CMP-0026,C206906
 "8.2u 5A 8.2uH ±20% 54mΩ 6A SMD,6.6x7mm Power Inductors",L1,CMP-0058,C167222
@@ -18,7 +17,6 @@ Fuse Fuse Holder (Mini) Inline Horizontal Mount,F1,CMP-0026,C206906
 120 RES TF SMD 120R 1% 250mW 1206,"R7,R8",R_1206_3216Metric,C114928
 0 RES TF SMD 0R 1% 62.5mW 0402,"R9,R11,R13,R14,R15,R16,R17,R18,R19,R20,R21,R22,R23,R24",R_0402_1005Metric,C17168
 10k RES TF SMD 10k 1% 62.5mW 0402,"R10,R12",R_0402_1005Metric,C25744
-SPST Tactile SPST,SW1,CMP-0011,C318884
 TPS54302 Switching Voltage Regulators 5 to 28V Input 3A Step Down Converter ,U1,SOT-23-6,C311983
 "XC6206P33 LDO Voltage Regulators 1uA Low Quiescent 3 Terminal, Low ESR Cap. Compatible, Voltage Regulator ",U2,CMP-0019,C5446
 TJA1051T/3 CAN Interface IC High-speed CAN transceiver ,"U3,U4",SOIC-8_3.9x4.9mm_P1.27mm,C38695
