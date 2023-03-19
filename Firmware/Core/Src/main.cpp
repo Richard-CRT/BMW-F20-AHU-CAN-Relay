@@ -22,6 +22,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "CanController.h"
+#include "UartController.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -96,12 +99,20 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  CanController can_controller_1 = CanController(&hfdcan1);
+  CanController can_controller_2 = CanController(&hfdcan2);
+  UartController uart_controller = UartController(&huart1);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+	  uint8_t test_uart_message[] = "Test UART message\r\n"; //Data to send
+	  HAL_UART_Transmit(&huart1,test_uart_message,sizeof(test_uart_message),10);// Sending in normal mode
+	  HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
