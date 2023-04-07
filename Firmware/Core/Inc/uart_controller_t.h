@@ -84,8 +84,6 @@ public:
 	/**
 	 * \brief UART Error Interrupt Callback
 	 *
-	 * Calls main error handler to prompt debugging
-	 * \see Error_Handler()
 	 */
 	void error_callback();
 

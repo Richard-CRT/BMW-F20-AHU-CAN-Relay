@@ -7,6 +7,8 @@
 
 #include <uart_controller_t.h>
 
+#include "main.h"
+
 uart_controller_t::uart_controller_t() :
 		huart(NULL),
 		rx_buf(fifo_buf_t<uint8_t>(false)),
@@ -132,6 +134,5 @@ void uart_controller_t::rx_cplt_callback()
 
 void uart_controller_t::error_callback()
 {
-	// Need to know what's causing this so call handler
 	Error_Handler();
 }

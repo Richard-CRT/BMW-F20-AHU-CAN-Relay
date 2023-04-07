@@ -23,6 +23,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-	// Need to know what's causing this so call handler
-	Error_Handler();
+	if (huart->Instance == USART1)
+		uart_controller_1.error_callback();
 }

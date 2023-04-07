@@ -1,7 +1,10 @@
 #include "prog_main.h"
 
+#include "main.h"
 #include "uart_controllers.h"
 #include "can_controllers.h"
+
+#include <cstdio>
 
 extern UART_HandleTypeDef huart1;
 extern FDCAN_HandleTypeDef hfdcan1;
@@ -17,15 +20,29 @@ int prog_main(void)
 	can_controller_1.init(&hfdcan1);
 	can_controller_2.init(&hfdcan2);
 
-	char test_uart_message[] = "Test UART message\r\n"; // Data to send
+	HAL_Delay(100);
+
 	while (1)
 	{
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-		uart_controller_1.write_bytes(test_uart_message, sizeof(test_uart_message));
-		uint8_t byte;
-		while (uart_controller_1.read_byte(&byte))
-			uart_controller_1.write_byte(byte);
-		uart_controller_1.write_bytes("\r\n", 2);
+
+		rx_can_message_t rx_can_message;
+		while (can_controller_1.read_message_0(&rx_can_message))
+		{
+			char buff[100];
+			snprintf(buff, sizeof(buff), "CAN1 received: %lx %lu\r\n", rx_can_message.RxHeader.Identifier,					(rx_can_message.RxHeader.DataLength >> 16));
+			uart_controller_1.write_bytes(buff);
+		}
+		while (can_controller_2.read_message_0(&rx_can_message))
+		{
+			char buff[100];
+			snprintf(buff, sizeof(buff), "CAN2 received: %lx %lu\r\n", rx_can_message.RxHeader.Identifier,					(rx_can_message.RxHeader.DataLength >> 16));
+			uart_controller_1.write_bytes(buff);
+		}
+
+		can_controller_1.send_message(0);
+		can_controller_2.send_message(0);
+
 		HAL_Delay(500);
 	}
 }

@@ -10,14 +10,12 @@
 
 #include <cstdint>
 
-#include "main.h"
-
 
 /**
  * \define FIFO_BUFFER_SIZE
  * \brief Size of the FIFO Buffer
  */
-#define FIFO_BUFFER_SIZE 1024
+#define FIFO_BUFFER_SIZE 256
 
 /**
  * \class fifo_buf_t

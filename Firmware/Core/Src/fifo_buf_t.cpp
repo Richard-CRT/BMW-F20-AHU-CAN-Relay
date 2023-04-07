@@ -6,12 +6,15 @@
 
 #include "fifo_buf_t.h"
 
+#include "rx_can_message_t.h"
+#include "main.h"
+
 template <class T>
 fifo_buf_t<T>::fifo_buf_t(bool full_keep_new) : full_keep_new(full_keep_new), head(0), tail(0), element_count(0)
 {
 	for (uint16_t i = 0; i < FIFO_BUFFER_SIZE; i++)
 	{
-		this->buffer[i] = 0;
+		this->buffer[i] = T();
 	}
 }
 
@@ -114,3 +117,4 @@ bool fifo_buf_t<T>::push(T val)
 }
 
 template class fifo_buf_t<uint8_t>;
+template class fifo_buf_t<rx_can_message_t>;
