@@ -10,13 +10,6 @@
 
 #include <cstdint>
 
-
-/**
- * \define FIFO_BUFFER_SIZE
- * \brief Size of the FIFO Buffer
- */
-#define FIFO_BUFFER_SIZE 256
-
 /**
  * \class fifo_buf_t
  * \brief Generic Template FIFO Class
@@ -24,7 +17,7 @@
  * Provides standard FIFO queue methods to add and remove data
  * from the buffer
  */
-template<class T>
+template<class T, int SIZE>
 class fifo_buf_t {
 public:
 	/**
@@ -118,7 +111,7 @@ private:
 	/**
 	 * \brief Underlying array to store the elements on the buffer
 	 */
-	T buffer[FIFO_BUFFER_SIZE];
+	T buffer[SIZE];
 };
 
 #endif /* SRC_FIFO_BUF_T_H_ */

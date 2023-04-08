@@ -6,43 +6,43 @@
 
 #include "fifo_buf_t.h"
 
-#include "rx_can_message_t.h"
 #include "main.h"
+#include "rx_can_message_t.h"
 
-template <class T>
-fifo_buf_t<T>::fifo_buf_t(bool full_keep_new) : full_keep_new(full_keep_new), head(0), tail(0), element_count(0)
+template <class T, int SIZE>
+fifo_buf_t<T, SIZE>::fifo_buf_t(bool full_keep_new) : full_keep_new(full_keep_new), head(0), tail(0), element_count(0)
 {
-	for (uint16_t i = 0; i < FIFO_BUFFER_SIZE; i++)
+	for (uint16_t i = 0; i < SIZE; i++)
 	{
 		this->buffer[i] = T();
 	}
 }
 
-template <class T>
-fifo_buf_t<T>::~fifo_buf_t()
+template <class T, int SIZE>
+fifo_buf_t<T, SIZE>::~fifo_buf_t()
 {
 }
 
-template <class T>
-bool fifo_buf_t<T>::full()
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::full()
 {
-	return this->element_count == FIFO_BUFFER_SIZE;
+	return this->element_count == SIZE;
 }
 
-template <class T>
-bool fifo_buf_t<T>::empty()
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::empty()
 {
 	return this->element_count == 0;
 }
 
-template <class T>
-uint16_t fifo_buf_t<T>::count()
+template <class T, int SIZE>
+uint16_t fifo_buf_t<T, SIZE>::count()
 {
 	return this->element_count;
 }
 
-template <class T>
-bool fifo_buf_t<T>::pop(T* val)
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::pop(T* val)
 {
 	if (this->empty())
 	{
@@ -53,16 +53,16 @@ bool fifo_buf_t<T>::pop(T* val)
 		this->element_count--;
 
 		uint16_t newTail = this->tail + 1;
-		if (newTail >= FIFO_BUFFER_SIZE)
-			newTail -= FIFO_BUFFER_SIZE;
+		if (newTail >= SIZE)
+			newTail -= SIZE;
 		this->tail = newTail;
 		(*val) = this->buffer[this->tail];
 		return true;
 	}
 }
 
-template <class T>
-bool fifo_buf_t<T>::read(T* val, uint16_t pos)
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::read(T* val, uint16_t pos)
 {
 	if (pos >= this->element_count)
 	{
@@ -72,27 +72,27 @@ bool fifo_buf_t<T>::read(T* val, uint16_t pos)
 	{
 		// 0 is the oldest value
 		uint16_t indexOfPosition = this->tail + pos + 1;
-		if (indexOfPosition >= FIFO_BUFFER_SIZE)
-			indexOfPosition -= FIFO_BUFFER_SIZE;
+		if (indexOfPosition >= SIZE)
+			indexOfPosition -= SIZE;
 		(*val) = this->buffer[indexOfPosition];
 		return true;
 	}
 }
 
-template <class T>
-bool fifo_buf_t<T>::oldest(T* val)
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::oldest(T* val)
 {
 	return this->read(val, 0);
 }
 
-template <class T>
-bool fifo_buf_t<T>::newest(T* val)
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::newest(T* val)
 {
 	return this->read(val, this->element_count - 1);
 }
 
-template <class T>
-bool fifo_buf_t<T>::push(T val)
+template <class T, int SIZE>
+bool fifo_buf_t<T, SIZE>::push(T val)
 {
 	if (this->full() && !this->full_keep_new)
 	{
@@ -106,8 +106,8 @@ bool fifo_buf_t<T>::push(T val)
 		}
 
 		uint16_t newHead = this->head + 1;
-		if (newHead >= FIFO_BUFFER_SIZE)
-			newHead -= FIFO_BUFFER_SIZE;
+		if (newHead >= SIZE)
+			newHead -= SIZE;
 		this->head = newHead;
 		this->buffer[this->head] = val;
 
@@ -116,5 +116,5 @@ bool fifo_buf_t<T>::push(T val)
 	}
 }
 
-template class fifo_buf_t<uint8_t>;
-template class fifo_buf_t<rx_can_message_t>;
+template class fifo_buf_t<uint8_t, 1024>;
+template class fifo_buf_t<rx_can_message_t, 256>;

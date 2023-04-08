@@ -96,14 +96,14 @@ private:
 	 *
 	 * Configured to keep old data when overflowing
 	 * */
-	fifo_buf_t<uint8_t> rx_buf;
+	fifo_buf_t<uint8_t, 1024> rx_buf;
 
 	/**
 	 * \brief FIFO Queue to buffer outgoing bytes
 	 *
 	 * Configured to keep old data when overflowing
 	 * */
-	fifo_buf_t<uint8_t> tx_buf;
+	fifo_buf_t<uint8_t, 1024> tx_buf;
 
 	/**
 	 * \brief Storage of the byte currently being transmitted

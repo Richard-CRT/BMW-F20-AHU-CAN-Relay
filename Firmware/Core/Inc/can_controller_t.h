@@ -24,7 +24,13 @@ public:
 	 * \param byte Message
 	 * \brief
 	 */
-	void send_message(uint8_t message);
+	void send_message(FDCAN_TxHeaderTypeDef* txHeader, uint8_t* txData);
+
+	/**
+	 * \param byte Message
+	 * \brief
+	 */
+	void send_copy_of_rx_message(rx_can_message_t* rx_can_message);
 
 	/**
 	 * \param byte Pointer to rx_can_message to return the read value to
@@ -50,16 +56,14 @@ public:
 private:
 	FDCAN_HandleTypeDef* hfdcan;
 	FDCAN_FilterTypeDef sFilterConfig;
-	FDCAN_TxHeaderTypeDef TxHeader;
-	uint8_t TxData[8];
 
 	/**
 	 * \brief FIFO Queue to buffer incoming bytes
 	 *
-	 * Configured to keep new data when overflowing
+	 * Configured to keep old data when overflowing
 	 * */
-	fifo_buf_t<rx_can_message_t> rx_buf_0;
-	fifo_buf_t<rx_can_message_t> rx_buf_1;
+	fifo_buf_t<rx_can_message_t, 256> rx_buf_0;
+	fifo_buf_t<rx_can_message_t, 256> rx_buf_1;
 };
 
 #endif /* CAN_CONTROLLER_T_H_ */
