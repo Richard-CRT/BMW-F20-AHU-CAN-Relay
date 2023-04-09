@@ -63,7 +63,7 @@ private:
 	FDCAN_FilterTypeDef sFilterConfig;
 
 	/**
-	 * \brief FIFO Queue to buffer incoming bytes
+	 * \brief FIFO Queue to buffer incoming frames
 	 *
 	 * Configured to keep old data when overflowing
 	 * */
