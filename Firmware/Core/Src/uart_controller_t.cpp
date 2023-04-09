@@ -134,5 +134,4 @@ void uart_controller_t::rx_cplt_callback()
 
 void uart_controller_t::error_callback()
 {
-	Error_Handler();
 }

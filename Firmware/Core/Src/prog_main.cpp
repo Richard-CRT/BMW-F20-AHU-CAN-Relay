@@ -14,55 +14,65 @@ extern uart_controller_t uart_controller_1;
 extern can_controller_t can_controller_1;
 extern can_controller_t can_controller_2;
 
-#define KICKSTART_CAN1
-#define KICKSTART_CAN2
+#define FORWARDING
+//#define KICKSTART_CAN1
+//#define KICKSTART_CAN2
 
 #ifdef DEBUG
-uint32_t count = 0;
 char buff[100];
 #endif
 
 void process_can_message(rx_can_message_t *rx_can_message,
 		bool received_by_can1_ncan2)
 {
-#ifdef DEBUG
 	// Message incoming
+#ifdef DEBUG
 
-	if (rx_can_message->RxHeader.DataLength > FDCAN_DLC_BYTES_8)
-		Error_Handler();
-	uint8_t bytes_length = rx_can_message->RxHeader.DataLength >> 16;
+		if (rx_can_message->RxHeader.DataLength > FDCAN_DLC_BYTES_8)
+			Error_Handler();
+		uint8_t bytes_length = rx_can_message->RxHeader.DataLength >> 16;
 
-	if (received_by_can1_ncan2)
-		snprintf(buff, sizeof(buff), "CAN1 received: ID 0x%lX Len %uB Data ",
-				rx_can_message->RxHeader.Identifier, bytes_length);
-	else
-		snprintf(buff, sizeof(buff), "CAN2 received: ID 0x%lX Len %uB Data ",
-				rx_can_message->RxHeader.Identifier, bytes_length);
-	uart_controller_1.write_bytes(buff);
-	uint32_t data_l = 0;
-	uint32_t data_h = 0;
-	for (uint8_t i = 0; i < bytes_length; i++)
-	{
-		if (i < 4)
-			data_l = (data_l << 8) | rx_can_message->RxData[i];
+		if (received_by_can1_ncan2)
+			snprintf(buff, sizeof(buff), "C1R %lX %uB",
+					rx_can_message->RxHeader.Identifier, bytes_length);
 		else
-			data_h = (data_h << 8) | rx_can_message->RxData[i];
-	}
-	snprintf(buff, sizeof(buff), "0x%lX_%lX \r\n", data_l, data_h);
-	uart_controller_1.write_bytes(buff);
+			snprintf(buff, sizeof(buff), "C2R %lX %uB",
+					rx_can_message->RxHeader.Identifier, bytes_length);
+		uart_controller_1.write_bytes(buff);
 
-	if (received_by_can1_ncan2)
-		snprintf(buff, sizeof(buff), "%lu CAN2 sending... ", count);
-	else
-		snprintf(buff, sizeof(buff), "%lu CAN1 sending... ", count);
-	uart_controller_1.write_bytes(buff);
-	count++;
+		/*
+		uint32_t data_l = 0;
+		uint32_t data_h = 0;
+		for (uint8_t i = 0; i < bytes_length; i++)
+		{
+			if (i < 4)
+				data_l = (data_l << 8) | rx_can_message->RxData[i];
+			else
+				data_h = (data_h << 8) | rx_can_message->RxData[i];
+		}
+		snprintf(buff, sizeof(buff), " 0x%08lX_%08lX", data_l, data_h);
+		uart_controller_1.write_bytes(buff);
+		*/
+
+		uart_controller_1.write_bytes("\r\n");
 #endif
 
+#ifdef FORWARDING
 	if (received_by_can1_ncan2)
+	{
 		can_controller_2.send_copy_of_rx_message(rx_can_message);
+	}
 	else
+	{
+		if (rx_can_message->RxHeader.Identifier == 0x130)
+		{
+			// Byte 0 Bit 0 is 1 when the ignition is on, trick the head unit
+			rx_can_message->RxData[0] |= 0x01;
+		}
+
 		can_controller_1.send_copy_of_rx_message(rx_can_message);
+	}
+#endif
 }
 
 int prog_main(void)
@@ -126,9 +136,7 @@ int prog_main(void)
 
 	while (1)
 	{
-#ifdef DEBUG
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-#endif
 
 		rx_can_message_t rx_can_message;
 		while (can_controller_1.read_message_0(&rx_can_message))
@@ -141,11 +149,5 @@ int prog_main(void)
 			// Message incoming from car
 			process_can_message(&rx_can_message, false);
 		}
-
-#ifdef DEBUG
-		HAL_Delay(100);
-#else
-		HAL_Delay(1);
-#endif
 	}
 }

@@ -12,9 +12,9 @@
 
 extern uart_controller_t uart_controller_1;
 
-can_controller_t::can_controller_t(GPIO_TypeDef * s_GPIO_Port, uint16_t s_Pin) :
-		S_GPIO_Port(s_GPIO_Port), S_Pin(s_Pin),
-		hfdcan(NULL), rx_buf_0(fifo_buf_t<rx_can_message_t, 256>(false)), // Configured to discard new data when full
+can_controller_t::can_controller_t(GPIO_TypeDef *s_GPIO_Port, uint16_t s_Pin) :
+		S_GPIO_Port(s_GPIO_Port), S_Pin(s_Pin), hfdcan(NULL), rx_buf_0(
+				fifo_buf_t<rx_can_message_t, 256>(false)), // Configured to discard new data when full
 		rx_buf_1(fifo_buf_t<rx_can_message_t, 256>(false)) // Configured to discard new data when full
 {
 }
@@ -87,14 +87,14 @@ void can_controller_t::silence(bool enable)
 
 }
 
-void can_controller_t::send_message(FDCAN_TxHeaderTypeDef* txHeader, uint8_t* txData)
+void can_controller_t::send_message(FDCAN_TxHeaderTypeDef *txHeader,
+		uint8_t *txData)
 {
-	if (HAL_FDCAN_AddMessageToTxFifoQ(this->hfdcan, txHeader, txData)
-			!= HAL_OK)
+	if (HAL_FDCAN_AddMessageToTxFifoQ(this->hfdcan, txHeader, txData) != HAL_OK)
 		Error_Handler();
 }
 
-void can_controller_t::send_copy_of_rx_message(rx_can_message_t* rx_can_message)
+void can_controller_t::send_copy_of_rx_message(rx_can_message_t *rx_can_message)
 {
 	FDCAN_TxHeaderTypeDef TxHeader;
 	TxHeader.Identifier = rx_can_message->RxHeader.Identifier;
@@ -107,24 +107,38 @@ void can_controller_t::send_copy_of_rx_message(rx_can_message_t* rx_can_message)
 	TxHeader.TxEventFifoControl = rx_can_message->RxHeader.Identifier;
 	TxHeader.MessageMarker = 0;
 
-	if (HAL_FDCAN_AddMessageToTxFifoQ(this->hfdcan, &TxHeader, rx_can_message->RxData)
-			!= HAL_OK)
-		Error_Handler();
+
+	if (HAL_FDCAN_AddMessageToTxFifoQ(this->hfdcan, &TxHeader,
+			rx_can_message->RxData) != HAL_OK)
+	{
+		uint32_t err = HAL_FDCAN_GetError(this->hfdcan);
+		switch (err)
+		{
+		// Don't error for FIFO full as it happens with 0 other nodes
+		case HAL_FDCAN_ERROR_FIFO_FULL:
+			break;
+		default:
+			Error_Handler();
+			break;
+		}
+	}
 }
 
 bool can_controller_t::read_message_0(rx_can_message_t *rx_can_message)
 {
-	// No need to disable interrupt as this is the only code that can remove
-	// from the circ buffer
+	// Ensure interrupt doesn't occur while buffer is being changed
+	HAL_NVIC_DisableIRQ(TIM16_FDCAN_IT0_IRQn);
 	bool success = this->rx_buf_0.pop(rx_can_message);
+	HAL_NVIC_EnableIRQ(TIM16_FDCAN_IT0_IRQn);
 	return success;
 }
 
 bool can_controller_t::read_message_1(rx_can_message_t *rx_can_message)
 {
-	// No need to disable interrupt as this is the only code that can remove
-	// from the circ buffer
+	// Ensure interrupt doesn't occur while buffer is being changed
+	HAL_NVIC_DisableIRQ(TIM17_FDCAN_IT1_IRQn);
 	bool success = this->rx_buf_1.pop(rx_can_message);
+	HAL_NVIC_EnableIRQ(TIM17_FDCAN_IT1_IRQn);
 	return success;
 }
 
@@ -139,7 +153,12 @@ void can_controller_t::rx_fifo_0_callback(uint32_t RxFifo0ITs)
 				&rx_can_message.RxHeader, rx_can_message.RxData) != HAL_OK)
 			Error_Handler();
 
-		this->rx_buf_0.push(rx_can_message);
+		if (!this->rx_buf_0.push(rx_can_message))
+		{
+#ifdef DEBUG
+			uart_controller_1.write_bytes("CAN FIFO0 full\r\n");
+#endif
+		}
 	}
 }
 
@@ -154,7 +173,12 @@ void can_controller_t::rx_fifo_1_callback(uint32_t RxFifo1ITs)
 				&rx_can_message.RxHeader, rx_can_message.RxData) != HAL_OK)
 			Error_Handler();
 
-		this->rx_buf_1.push(rx_can_message);
+		if (!this->rx_buf_1.push(rx_can_message))
+		{
+#ifdef DEBUG
+			uart_controller_1.write_bytes("CAN FIFO1 full\r\n");
+#endif
+		}
 	}
 }
 
