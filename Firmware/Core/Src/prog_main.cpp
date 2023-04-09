@@ -6,6 +6,7 @@
 
 #include <cstdio>
 
+extern TIM_HandleTypeDef htim1;
 extern UART_HandleTypeDef huart1;
 extern FDCAN_HandleTypeDef hfdcan1;
 extern FDCAN_HandleTypeDef hfdcan2;
@@ -17,10 +18,24 @@ extern can_controller_t can_controller_2;
 #define FORWARDING
 //#define KICKSTART_CAN1
 //#define KICKSTART_CAN2
+#define SHUTDOWN_DELAY_SECONDS 300
 
 #ifdef DEBUG
 char buff[100];
 #endif
+
+uint16_t seconds = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+#ifdef DEBUG
+	snprintf(buff, sizeof(buff), "Tick %u\r\n", seconds);
+	uart_controller_1.write_bytes(buff);
+#endif
+	if (seconds < SHUTDOWN_DELAY_SECONDS)
+		seconds++;
+}
 
 void process_can_message(rx_can_message_t *rx_can_message,
 		bool received_by_can1_ncan2)
@@ -28,33 +43,33 @@ void process_can_message(rx_can_message_t *rx_can_message,
 	// Message incoming
 #ifdef DEBUG
 
-		if (rx_can_message->RxHeader.DataLength > FDCAN_DLC_BYTES_8)
-			Error_Handler();
-		uint8_t bytes_length = rx_can_message->RxHeader.DataLength >> 16;
+	if (rx_can_message->RxHeader.DataLength > FDCAN_DLC_BYTES_8)
+		Error_Handler();
+	uint8_t bytes_length = rx_can_message->RxHeader.DataLength >> 16;
 
-		if (received_by_can1_ncan2)
-			snprintf(buff, sizeof(buff), "C1R %lX %uB",
-					rx_can_message->RxHeader.Identifier, bytes_length);
-		else
-			snprintf(buff, sizeof(buff), "C2R %lX %uB",
-					rx_can_message->RxHeader.Identifier, bytes_length);
-		uart_controller_1.write_bytes(buff);
+	if (received_by_can1_ncan2)
+		snprintf(buff, sizeof(buff), "C1R %lX %uB",
+				rx_can_message->RxHeader.Identifier, bytes_length);
+	else
+		snprintf(buff, sizeof(buff), "C2R %lX %uB",
+				rx_can_message->RxHeader.Identifier, bytes_length);
+	uart_controller_1.write_bytes(buff);
 
-		/*
-		uint32_t data_l = 0;
-		uint32_t data_h = 0;
-		for (uint8_t i = 0; i < bytes_length; i++)
-		{
-			if (i < 4)
-				data_l = (data_l << 8) | rx_can_message->RxData[i];
-			else
-				data_h = (data_h << 8) | rx_can_message->RxData[i];
-		}
-		snprintf(buff, sizeof(buff), " 0x%08lX_%08lX", data_l, data_h);
-		uart_controller_1.write_bytes(buff);
-		*/
+	/*
+	 uint32_t data_l = 0;
+	 uint32_t data_h = 0;
+	 for (uint8_t i = 0; i < bytes_length; i++)
+	 {
+	 if (i < 4)
+	 data_l = (data_l << 8) | rx_can_message->RxData[i];
+	 else
+	 data_h = (data_h << 8) | rx_can_message->RxData[i];
+	 }
+	 snprintf(buff, sizeof(buff), " 0x%08lX_%08lX", data_l, data_h);
+	 uart_controller_1.write_bytes(buff);
+	 */
 
-		uart_controller_1.write_bytes("\r\n");
+	uart_controller_1.write_bytes("\r\n");
 #endif
 
 #ifdef FORWARDING
@@ -66,8 +81,18 @@ void process_can_message(rx_can_message_t *rx_can_message,
 	{
 		if (rx_can_message->RxHeader.Identifier == 0x130)
 		{
-			// Byte 0 Bit 0 is 1 when the ignition is on, trick the head unit
-			rx_can_message->RxData[0] |= 0x01;
+			// Byte 0 Bit 0 is 1 when the ignition is on
+
+			// While the ignition is on, reset seconds
+			if (rx_can_message->RxData[0] & 0x01)
+			{
+				seconds = 0;
+			}
+			else if (seconds < SHUTDOWN_DELAY_SECONDS)
+			{
+				// Haven't reached delay threshold yet, trick head unit
+				rx_can_message->RxData[0] |= 0x01;
+			}
 		}
 
 		can_controller_1.send_copy_of_rx_message(rx_can_message);
@@ -77,6 +102,8 @@ void process_can_message(rx_can_message_t *rx_can_message,
 
 int prog_main(void)
 {
+	HAL_TIM_Base_Start_IT(&htim1);
+
 	uart_controller_1.init(&huart1, USART1_IRQn);
 	can_controller_1.init(&hfdcan1);
 	can_controller_2.init(&hfdcan2);
@@ -136,8 +163,6 @@ int prog_main(void)
 
 	while (1)
 	{
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-
 		rx_can_message_t rx_can_message;
 		while (can_controller_1.read_message_0(&rx_can_message))
 		{
