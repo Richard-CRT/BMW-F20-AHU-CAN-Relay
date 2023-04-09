@@ -13,37 +13,40 @@
 #include "fifo_buf_t.h"
 #include "rx_can_message_t.h"
 
-class can_controller_t {
+class can_controller_t
+{
 public:
-	can_controller_t();
+	can_controller_t(GPIO_TypeDef *S_GPIO_Port, uint16_t S_Pin);
 	virtual ~can_controller_t();
 
-	void init(FDCAN_HandleTypeDef* hfdcan);
+	void init(FDCAN_HandleTypeDef *hfdcan);
+
+	void silence(bool enable);
 
 	/**
 	 * \param byte Message
 	 * \brief
 	 */
-	void send_message(FDCAN_TxHeaderTypeDef* txHeader, uint8_t* txData);
+	void send_message(FDCAN_TxHeaderTypeDef *txHeader, uint8_t *txData);
 
 	/**
 	 * \param byte Message
 	 * \brief
 	 */
-	void send_copy_of_rx_message(rx_can_message_t* rx_can_message);
+	void send_copy_of_rx_message(rx_can_message_t *rx_can_message);
 
 	/**
 	 * \param byte Pointer to rx_can_message to return the read value to
 	 * \return Success/Failure to read a rx_can_message from the receiving buffer
 	 * \brief Non-blocking read a byte from the receiving buffer 0
 	 */
-	bool read_message_0(rx_can_message_t* rx_can_message);
+	bool read_message_0(rx_can_message_t *rx_can_message);
 	/**
 	 * \param byte Pointer to rx_can_message to return the read value to
 	 * \return Success/Failure to read a rx_can_message from the receiving buffer
 	 * \brief Non-blocking read a byte from the receiving buffer 1
 	 */
-	bool read_message_1(rx_can_message_t* rx_can_message);
+	bool read_message_1(rx_can_message_t *rx_can_message);
 
 	void rx_fifo_0_callback(uint32_t RxFifo0ITs);
 	void rx_fifo_1_callback(uint32_t RxFifo1ITs);
@@ -54,7 +57,9 @@ public:
 	 */
 	void error_callback();
 private:
-	FDCAN_HandleTypeDef* hfdcan;
+	GPIO_TypeDef *S_GPIO_Port;
+	uint16_t S_Pin;
+	FDCAN_HandleTypeDef *hfdcan;
 	FDCAN_FilterTypeDef sFilterConfig;
 
 	/**

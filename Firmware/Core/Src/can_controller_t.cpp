@@ -12,7 +12,8 @@
 
 extern uart_controller_t uart_controller_1;
 
-can_controller_t::can_controller_t() :
+can_controller_t::can_controller_t(GPIO_TypeDef * s_GPIO_Port, uint16_t s_Pin) :
+		S_GPIO_Port(s_GPIO_Port), S_Pin(s_Pin),
 		hfdcan(NULL), rx_buf_0(fifo_buf_t<rx_can_message_t, 256>(false)), // Configured to discard new data when full
 		rx_buf_1(fifo_buf_t<rx_can_message_t, 256>(false)) // Configured to discard new data when full
 {
@@ -75,6 +76,15 @@ void can_controller_t::init(FDCAN_HandleTypeDef *hfdcan)
 	if (HAL_FDCAN_ActivateNotification(hfdcan, FDCAN_IT_RX_FIFO1_NEW_MESSAGE, 0)
 			!= HAL_OK)
 		Error_Handler();
+}
+
+void can_controller_t::silence(bool enable)
+{
+	if (enable)
+		HAL_GPIO_WritePin(this->S_GPIO_Port, this->S_Pin, GPIO_PIN_SET);
+	else
+		HAL_GPIO_WritePin(this->S_GPIO_Port, this->S_Pin, GPIO_PIN_RESET);
+
 }
 
 void can_controller_t::send_message(FDCAN_TxHeaderTypeDef* txHeader, uint8_t* txData)
