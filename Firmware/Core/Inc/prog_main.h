@@ -8,6 +8,11 @@
 #endif
 
 #include "stm32g0xx_hal.h"
+#include "rx_can_message_t.h"
+#include <stdbool.h>
+
+void process_can_message(rx_can_message_t *rx_can_message,
+		bool received_by_can1_ncan2);
 
 /**
  * \fn prog_main
