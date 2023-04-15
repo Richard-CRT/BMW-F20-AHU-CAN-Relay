@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <cstring>
 
-extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern UART_HandleTypeDef huart1;
@@ -27,6 +26,7 @@ extern can_controller_t can_controller_2;
 //#define KICKSTART_CAN2
 
 #define SHUTDOWN_DELAY_SECONDS (5 * 60)
+#define SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS (SHUTDOWN_DELAY_SECONDS * 100)
 #define ECHO_130_DELAY_SECONDS 2
 #define ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS (ECHO_130_DELAY_SECONDS * 100)
 
@@ -34,9 +34,15 @@ extern can_controller_t can_controller_2;
 char buff[256];
 #endif
 
-bool reset = true;
-uint16_t seconds_since_ignition_bit_on = 0;
-uint16_t hundredths_of_second_since_last_130 = 0;
+enum class State
+{
+	Idle, PreIdle, F1, Echo
+};
+
+State state = State::Idle;
+uint16_t hundredths_of_seconds_since_ignition_bit_on = 0;
+uint16_t hundredths_of_seconds_since_last_130 = 0;
+uint8_t hundredths_of_seconds_since_last_led_flip = 0;
 
 #ifdef MODIFY_130
 rx_can_message_t last_130_frame;
@@ -45,75 +51,149 @@ bool received_130_frame = false;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if (htim->Instance == TIM2)
+	if (htim->Instance == TIM3)
 	{
 		// 1 Hz
 #ifdef DEBUG
-		if (reset)
-			uart_controller_1.write_bytes("RESET\r\n");
-		snprintf(buff, sizeof(buff), "Tick %u\r\n",
-				seconds_since_ignition_bit_on);
+		switch (state)
+		{
+		case State::Idle:
+			uart_controller_1.write_bytes("Idle\r\n");
+			break;
+		case State::F1:
+			uart_controller_1.write_bytes("F1\r\n");
+			break;
+		case State::PreIdle:
+			uart_controller_1.write_bytes("PreIdle\r\n");
+			break;
+		case State::Echo:
+			uart_controller_1.write_bytes("Echo\r\n");
+			break;
+		}
+		snprintf(buff, sizeof(buff), "SSI %u\r\n",
+				hundredths_of_seconds_since_ignition_bit_on / 100); // integer division
 		uart_controller_1.write_bytes(buff);
 #endif
 
-		if (seconds_since_ignition_bit_on < SHUTDOWN_DELAY_SECONDS)
-			seconds_since_ignition_bit_on++;
 
 #ifdef MODIFY_130
-		if (!reset)
+
+		switch (state)
 		{
-			// If we haven't reached shutdown delay threshold
-			// and we've stopped receiving packets from the car, echo
-			if (hundredths_of_second_since_last_130
-					>= ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS
-					&& seconds_since_ignition_bit_on < SHUTDOWN_DELAY_SECONDS)
+		case State::Echo:
+			if (received_130_frame)
 			{
-				if (received_130_frame)
-				{
-					// echo the last 130 packet we received
-#ifdef DEBUG
-					uart_controller_1.write_bytes("ECHO 130\r\n");
-#endif
+				rx_can_message_t dummy_130_frame;
 
-					rx_can_message_t dummy_130_frame;
+				memcpy(&dummy_130_frame.RxHeader, &last_130_frame.RxHeader,
+						sizeof(dummy_130_frame.RxHeader));
+				memcpy(dummy_130_frame.RxData, last_130_frame.RxData,
+						8 * sizeof(uint8_t));
 
-					memcpy(&dummy_130_frame.RxHeader, &last_130_frame.RxHeader,
-							sizeof(dummy_130_frame.RxHeader));
-					memcpy(dummy_130_frame.RxData, last_130_frame.RxData,
-							8 * sizeof(uint8_t));
-
-					// Trick head unit
-					dummy_130_frame.RxData[0] |= 0x01;
-					can_controller_1.send_copy_of_rx_message(&dummy_130_frame);
-				}
+				// Trick head unit
+				dummy_130_frame.RxData[0] |= 0x01;
+				can_controller_1.send_copy_of_rx_message(&dummy_130_frame);
 			}
+			break;
+		default:
+			break;
 		}
+
 #endif
-	}
-	else if (htim->Instance == TIM3)
-	{
-		// 10 Hz
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 	}
 	else if (htim->Instance == TIM4)
 	{
 		// 100 Hz
-		if (hundredths_of_second_since_last_130
-				< ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS)
-			hundredths_of_second_since_last_130++;
 
-		// If we've stopped receiving 130s and reached delay threshold, reset
-		if (hundredths_of_second_since_last_130
-				>= ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS
-				&& seconds_since_ignition_bit_on >= SHUTDOWN_DELAY_SECONDS)
+		bool flip = false;
+		switch (state)
 		{
-			reset = true;
+		case State::Idle:
+			if (hundredths_of_seconds_since_last_led_flip >= 200 - 1) // 0.5 Hz
+				flip = true;
+			break;
+		case State::PreIdle:
+			if (hundredths_of_seconds_since_last_led_flip >= 100 - 1) // 1 Hz
+				flip = true;
+			break;
+		case State::F1:
+			if (hundredths_of_seconds_since_last_led_flip >= 5 - 1) // 20 Hz
+				flip = true;
+			break;
+		case State::Echo:
+			if (hundredths_of_seconds_since_last_led_flip >= 20 - 1) // 5 Hz
+				flip = true;
+			break;
 		}
 
-		if (reset)
+		if (flip)
 		{
-			seconds_since_ignition_bit_on = 0;
-			hundredths_of_second_since_last_130 = 0;
+			hundredths_of_seconds_since_last_led_flip = 0;
+			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+		}
+		else if (hundredths_of_seconds_since_last_led_flip < 255)
+		{
+			hundredths_of_seconds_since_last_led_flip++;
+		}
+
+		switch (state)
+		{
+		case State::F1:
+		case State::PreIdle:
+		case State::Echo:
+			if (hundredths_of_seconds_since_ignition_bit_on < SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
+				hundredths_of_seconds_since_ignition_bit_on++;
+			break;
+		default:
+			break;
+		}
+
+		if (hundredths_of_seconds_since_ignition_bit_on >= SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
+		{
+			// TIME
+
+			switch (state)
+			{
+			case State::F1:
+				state = State::PreIdle;
+				break;
+			case State::Echo:
+				state = State::Idle;
+				break;
+			default:
+				break;
+			}
+		}
+
+		switch (state)
+		{
+		case State::F1:
+		case State::PreIdle:
+			if (hundredths_of_seconds_since_last_130
+					< ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS)
+				hundredths_of_seconds_since_last_130++;
+			break;
+		default:
+			break;
+		}
+
+		// If we've stopped receiving 130s and reached delay threshold
+		if (hundredths_of_seconds_since_last_130
+				>= ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS)
+		{
+			// LOSS
+
+			switch (state)
+			{
+			case State::F1:
+				state = State::Echo;
+				break;
+			case State::PreIdle:
+				state = State::Idle;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }
@@ -166,24 +246,43 @@ void process_can_message(rx_can_message_t *rx_can_message,
 		if (rx_can_message->RxHeader.Identifier == 0x130)
 		{
 			received_130_frame = true;
-			hundredths_of_second_since_last_130 = 0;
 			memcpy(&last_130_frame.RxHeader, &rx_can_message->RxHeader,
 					sizeof(last_130_frame.RxHeader));
 			memcpy(last_130_frame.RxData, rx_can_message->RxData,
 					8 * sizeof(uint8_t));
 
-			reset = false;
+			hundredths_of_seconds_since_last_130 = 0;
 
 			// Byte 0 Bit 0 is 1 when the ignition is on
-			// While the ignition is on, reset seconds
-			if (rx_can_message->RxData[0] & 0x01)
-				seconds_since_ignition_bit_on = 0;
+			bool ignition_on = rx_can_message->RxData[0] & 0x01;
 
-			if (seconds_since_ignition_bit_on < SHUTDOWN_DELAY_SECONDS)
+			switch (state)
+			{
+			case State::Idle:
+			case State::Echo:
+				hundredths_of_seconds_since_ignition_bit_on = 0;
+				state = State::F1;
+				break;
+			case State::F1:
+			case State::PreIdle:
+				if (ignition_on)
+				{
+					hundredths_of_seconds_since_ignition_bit_on = 0;
+					state = State::F1;
+				}
+				break;
+			}
+
+			switch (state)
+			{
+			case State::F1:
 				rx_can_message->RxData[0] |= 0x01;
+				break;
+			default:
+				break;
+			}
 		}
 #endif
-
 		can_controller_1.send_copy_of_rx_message(rx_can_message);
 	}
 #endif
@@ -191,7 +290,6 @@ void process_can_message(rx_can_message_t *rx_can_message,
 
 int prog_main(void)
 {
-	HAL_TIM_Base_Start_IT(&htim2);
 	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_TIM_Base_Start_IT(&htim4);
 
