@@ -116,5 +116,6 @@ bool fifo_buf_t<T, SIZE>::push(T val)
 	}
 }
 
-template class fifo_buf_t<uint8_t, 1024>;
-template class fifo_buf_t<rx_can_message_t, 256>;
+template class fifo_buf_t<uint8_t, 512>;
+template class fifo_buf_t<rx_can_message_t, 1400>;
+template class fifo_buf_t<rx_can_message_t, 32>;

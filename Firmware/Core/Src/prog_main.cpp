@@ -17,6 +17,7 @@ extern uart_controller_t uart_controller_1;
 extern can_controller_t can_controller_1;
 extern can_controller_t can_controller_2;
 
+#define LED_INDICATOR
 #define FORWARDING
 #ifdef FORWARDING
 #define MODIFY_130
@@ -75,7 +76,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		uart_controller_1.write_bytes(buff);
 #endif
 
-
 #ifdef MODIFY_130
 
 		switch (state)
@@ -105,6 +105,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		// 100 Hz
 
+#ifdef LED_INDICATOR
 		bool flip = false;
 		switch (state)
 		{
@@ -135,20 +136,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		{
 			hundredths_of_seconds_since_last_led_flip++;
 		}
+#endif
 
 		switch (state)
 		{
 		case State::F1:
 		case State::PreIdle:
 		case State::Echo:
-			if (hundredths_of_seconds_since_ignition_bit_on < SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
+			if (hundredths_of_seconds_since_ignition_bit_on
+					< SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
 				hundredths_of_seconds_since_ignition_bit_on++;
 			break;
 		default:
 			break;
 		}
 
-		if (hundredths_of_seconds_since_ignition_bit_on >= SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
+		if (hundredths_of_seconds_since_ignition_bit_on
+				>= SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
 		{
 			// TIME
 
@@ -198,11 +202,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-void process_can_message(rx_can_message_t *rx_can_message,
+bool process_can_message(rx_can_message_t *rx_can_message,
 		bool received_by_can1_ncan2)
 {
 // Message incoming
-#ifdef DEBUG
+#if defined(DEBUG) && False
 	if (rx_can_message->RxHeader.Identifier == 0x130)
 	{
 		if (rx_can_message->RxHeader.DataLength > FDCAN_DLC_BYTES_8)
@@ -238,7 +242,7 @@ void process_can_message(rx_can_message_t *rx_can_message,
 #ifdef FORWARDING
 	if (received_by_can1_ncan2)
 	{
-		can_controller_2.send_copy_of_rx_message(rx_can_message);
+		return can_controller_2.send_copy_of_rx_message(rx_can_message);
 	}
 	else
 	{
@@ -283,7 +287,7 @@ void process_can_message(rx_can_message_t *rx_can_message,
 			}
 		}
 #endif
-		can_controller_1.send_copy_of_rx_message(rx_can_message);
+		return can_controller_1.send_copy_of_rx_message(rx_can_message);
 	}
 #endif
 }
@@ -348,18 +352,22 @@ int prog_main(void)
 	can_controller_2.send_message(&TxHeader, TxData2);
 #endif
 
+	rx_can_message_t rx_can_message;
 	while (1)
 	{
-		rx_can_message_t rx_can_message;
-		while (can_controller_1.read_message_0(&rx_can_message))
+		if (can_controller_1.read_message_0(&rx_can_message))
 		{
 			// Message incoming from head-unit
-			process_can_message(&rx_can_message, true);
+			bool processed = process_can_message(&rx_can_message, true);
+			if (processed)
+				can_controller_1.pop_message_0();
 		}
-		while (can_controller_2.read_message_0(&rx_can_message))
+		if (can_controller_2.read_message_0(&rx_can_message))
 		{
 			// Message incoming from car
-			process_can_message(&rx_can_message, false);
+			bool processed = process_can_message(&rx_can_message, false);
+			if (processed)
+				can_controller_2.pop_message_0();
 		}
 	}
 }

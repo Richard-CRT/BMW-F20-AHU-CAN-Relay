@@ -11,8 +11,8 @@
 
 uart_controller_t::uart_controller_t() :
 		huart(NULL),
-		rx_buf(fifo_buf_t<uint8_t, 1024>(false)),
-		tx_buf(fifo_buf_t<uint8_t, 1024>(false)),
+		rx_buf(fifo_buf_t<uint8_t, 512>(false)),
+		tx_buf(fifo_buf_t<uint8_t, 512>(false)),
 		transmitting_byte(0),
 		receiving_byte(0)
 {

@@ -27,13 +27,13 @@ public:
 	 * \param byte Message
 	 * \brief
 	 */
-	void send_message(FDCAN_TxHeaderTypeDef *txHeader, uint8_t *txData);
+	bool send_message(FDCAN_TxHeaderTypeDef *txHeader, uint8_t *txData);
 
 	/**
 	 * \param byte Message
 	 * \brief
 	 */
-	void send_copy_of_rx_message(rx_can_message_t *rx_can_message);
+	bool send_copy_of_rx_message(rx_can_message_t *rx_can_message);
 
 	/**
 	 * \param byte Pointer to rx_can_message to return the read value to
@@ -41,13 +41,16 @@ public:
 	 * \brief Non-blocking read a byte from the receiving buffer 0
 	 */
 	bool read_message_0(rx_can_message_t *rx_can_message);
+	bool pop_message_0();
 	/**
 	 * \param byte Pointer to rx_can_message to return the read value to
 	 * \return Success/Failure to read a rx_can_message from the receiving buffer
 	 * \brief Non-blocking read a byte from the receiving buffer 1
 	 */
 	bool read_message_1(rx_can_message_t *rx_can_message);
+	bool pop_message_1();
 
+	void tx_fifo_empty_callback();
 	void rx_fifo_0_callback(uint32_t RxFifo0ITs);
 	void rx_fifo_1_callback(uint32_t RxFifo1ITs);
 
@@ -67,8 +70,8 @@ private:
 	 *
 	 * Configured to keep old data when overflowing
 	 * */
-	fifo_buf_t<rx_can_message_t, 256> rx_buf_0;
-	fifo_buf_t<rx_can_message_t, 256> rx_buf_1;
+	fifo_buf_t<rx_can_message_t, 1400> rx_buf_0;
+	fifo_buf_t<rx_can_message_t, 32> rx_buf_1;
 };
 
 #endif /* CAN_CONTROLLER_T_H_ */

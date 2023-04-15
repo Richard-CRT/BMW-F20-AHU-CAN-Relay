@@ -11,7 +11,7 @@
 #include "rx_can_message_t.h"
 #include <stdbool.h>
 
-void process_can_message(rx_can_message_t *rx_can_message,
+bool process_can_message(rx_can_message_t *rx_can_message,
 		bool received_by_can1_ncan2);
 
 /**
