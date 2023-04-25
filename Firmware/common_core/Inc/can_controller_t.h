@@ -13,6 +13,7 @@
 #include "fifo_buf_t.h"
 #include "rx_can_message_t.h"
 
+template<int SIZE0, int SIZE1>
 class can_controller_t
 {
 public:
@@ -63,15 +64,14 @@ private:
 	GPIO_TypeDef *S_GPIO_Port;
 	uint16_t S_Pin;
 	FDCAN_HandleTypeDef *hfdcan;
-	FDCAN_FilterTypeDef sFilterConfig;
 
 	/**
 	 * \brief FIFO Queue to buffer incoming frames
 	 *
 	 * Configured to keep old data when overflowing
 	 * */
-	fifo_buf_t<rx_can_message_t, 512> rx_buf_0;
-	fifo_buf_t<rx_can_message_t, 16> rx_buf_1;
+	fifo_buf_t<rx_can_message_t, SIZE0> rx_buf_0;
+	fifo_buf_t<rx_can_message_t, SIZE1> rx_buf_1;
 };
 
 #endif /* CAN_CONTROLLER_T_H_ */

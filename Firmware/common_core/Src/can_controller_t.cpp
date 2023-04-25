@@ -19,29 +19,25 @@ extern uart_controller_t uart_controller_1;
 char buff1[256];
 #endif
 
-can_controller_t::can_controller_t(GPIO_TypeDef *s_GPIO_Port, uint16_t s_Pin) :
-		S_GPIO_Port(s_GPIO_Port), S_Pin(s_Pin), hfdcan(NULL),
-		rx_buf_0(fifo_buf_t<rx_can_message_t, 512>(false)), // Configured to discard new data when full
-		rx_buf_1(fifo_buf_t<rx_can_message_t, 16>(false)) // Configured to discard new data when full
+template<int SIZE0, int SIZE1>
+can_controller_t<SIZE0, SIZE1>::can_controller_t(GPIO_TypeDef *s_GPIO_Port,
+		uint16_t s_Pin) :
+		S_GPIO_Port(s_GPIO_Port), S_Pin(s_Pin), hfdcan(NULL), rx_buf_0(
+				fifo_buf_t<rx_can_message_t, SIZE0>(false)), // Configured to discard new data when full
+		rx_buf_1(fifo_buf_t<rx_can_message_t, SIZE1>(false)) // Configured to discard new data when full
 {
 }
 
-can_controller_t::~can_controller_t()
+template<int SIZE0, int SIZE1>
+can_controller_t<SIZE0, SIZE1>::~can_controller_t()
 {
 	// TODO Auto-generated destructor stub
 }
 
-void can_controller_t::init(FDCAN_HandleTypeDef *hfdcan)
+template<int SIZE0, int SIZE1>
+void can_controller_t<SIZE0, SIZE1>::init(FDCAN_HandleTypeDef *hfdcan)
 {
 	this->hfdcan = hfdcan;
-
-	/* Configure global filter:
-	 Filter all remote frames with STD and EXT ID
-	 Reject non matching frames with STD ID and EXT ID */
-	if (HAL_FDCAN_ConfigGlobalFilter(hfdcan, FDCAN_ACCEPT_IN_RX_FIFO0,
-	FDCAN_ACCEPT_IN_RX_FIFO0,
-	FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE) != HAL_OK)
-		Error_Handler();
 
 	/*##-2 Start FDCAN controller (continuous listening CAN bus) ##############*/
 	if (HAL_FDCAN_Start(hfdcan) != HAL_OK)
@@ -56,7 +52,8 @@ void can_controller_t::init(FDCAN_HandleTypeDef *hfdcan)
 		Error_Handler();
 }
 
-void can_controller_t::silence(bool enable)
+template<int SIZE0, int SIZE1>
+void can_controller_t<SIZE0, SIZE1>::silence(bool enable)
 {
 	if (enable)
 		HAL_GPIO_WritePin(this->S_GPIO_Port, this->S_Pin, GPIO_PIN_SET);
@@ -65,8 +62,9 @@ void can_controller_t::silence(bool enable)
 
 }
 
-bool can_controller_t::send_message(FDCAN_TxHeaderTypeDef *txHeader,
-		uint8_t *txData)
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::send_message(
+		FDCAN_TxHeaderTypeDef *txHeader, uint8_t *txData)
 {
 	if (HAL_FDCAN_GetTxFifoFreeLevel(this->hfdcan) > 0)
 	{
@@ -79,7 +77,9 @@ bool can_controller_t::send_message(FDCAN_TxHeaderTypeDef *txHeader,
 		return false;
 }
 
-bool can_controller_t::send_copy_of_rx_message(rx_can_message_t *rx_can_message)
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::send_copy_of_rx_message(
+		rx_can_message_t *rx_can_message)
 {
 	FDCAN_TxHeaderTypeDef TxHeader;
 
@@ -106,13 +106,16 @@ bool can_controller_t::send_copy_of_rx_message(rx_can_message_t *rx_can_message)
 		return false;
 }
 
-bool can_controller_t::read_message_0(rx_can_message_t *rx_can_message)
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::read_message_0(
+		rx_can_message_t *rx_can_message)
 {
 	bool success = this->rx_buf_0.oldest(rx_can_message);
 	return success;
 }
 
-bool can_controller_t::pop_message_0()
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::pop_message_0()
 {
 	// Ensure interrupt doesn't occur while buffer is being changed
 	HAL_NVIC_DisableIRQ(TIM16_FDCAN_IT0_IRQn);
@@ -121,13 +124,16 @@ bool can_controller_t::pop_message_0()
 	return success;
 }
 
-bool can_controller_t::read_message_1(rx_can_message_t *rx_can_message)
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::read_message_1(
+		rx_can_message_t *rx_can_message)
 {
 	bool success = this->rx_buf_1.oldest(rx_can_message);
 	return success;
 }
 
-bool can_controller_t::pop_message_1()
+template<int SIZE0, int SIZE1>
+bool can_controller_t<SIZE0, SIZE1>::pop_message_1()
 {
 	// Ensure interrupt doesn't occur while buffer is being changed
 	HAL_NVIC_DisableIRQ(TIM16_FDCAN_IT0_IRQn);
@@ -136,7 +142,8 @@ bool can_controller_t::pop_message_1()
 	return success;
 }
 
-void can_controller_t::rx_fifo_0_callback(uint32_t RxFifo0ITs)
+template<int SIZE0, int SIZE1>
+void can_controller_t<SIZE0, SIZE1>::rx_fifo_0_callback(uint32_t RxFifo0ITs)
 {
 	if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
 	{
@@ -156,13 +163,14 @@ void can_controller_t::rx_fifo_0_callback(uint32_t RxFifo0ITs)
 	}
 }
 
-void can_controller_t::rx_fifo_1_callback(uint32_t RxFifo1ITs)
+template<int SIZE0, int SIZE1>
+void can_controller_t<SIZE0, SIZE1>::rx_fifo_1_callback(uint32_t RxFifo1ITs)
 {
 	if ((RxFifo1ITs & FDCAN_IT_RX_FIFO1_NEW_MESSAGE) != RESET)
 	{
 		rx_can_message_t rx_can_message;
 
-		/* Retrieve Rx messages from RX FIFO0 */
+		/* Retrieve Rx messages from RX FIFO1 */
 		if (HAL_FDCAN_GetRxMessage(this->hfdcan, FDCAN_RX_FIFO1,
 				&rx_can_message.RxHeader, rx_can_message.RxData) != HAL_OK)
 			Error_Handler();
@@ -180,7 +188,10 @@ void can_controller_t::rx_fifo_1_callback(uint32_t RxFifo1ITs)
 //    Error
 // ##################################################################
 
-void can_controller_t::error_callback()
+template<int SIZE0, int SIZE1>
+void can_controller_t<SIZE0, SIZE1>::error_callback()
 {
 	//uint32_t err = HAL_FDCAN_GetError(this->hfdcan);
 }
+
+template class can_controller_t<512, 4> ;

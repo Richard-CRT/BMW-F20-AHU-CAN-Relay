@@ -2,19 +2,10 @@
 #include "main.h"
 #include "uart_controllers.h"
 #include "can_controllers.h"
+#include "programmer_bootloader_frames.h"
 
 #include <cstdio>
 #include <cstring>
-
-extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
-extern UART_HandleTypeDef huart1;
-extern FDCAN_HandleTypeDef hfdcan1;
-extern FDCAN_HandleTypeDef hfdcan2;
-
-extern uart_controller_t uart_controller_1;
-extern can_controller_t can_controller_1;
-extern can_controller_t can_controller_2;
 
 #define FLAGS_ADDRESS (FLASH_BASE + (38 * 0x400))
 
@@ -32,16 +23,26 @@ extern can_controller_t can_controller_2;
 #define ECHO_130_DELAY_SECONDS 2
 #define ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS (ECHO_130_DELAY_SECONDS * 100)
 
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
+extern UART_HandleTypeDef huart1;
+extern FDCAN_HandleTypeDef hfdcan1;
+extern FDCAN_HandleTypeDef hfdcan2;
+
+extern uart_controller_t uart_controller_1;
+extern can_controller_t<512, 4> can_controller_1;
+extern can_controller_t<512, 4> can_controller_2;
+
 #ifdef DEBUG
 char buff[256];
 #endif
 
-enum class State
+enum class State_t
 {
 	Idle, PreIdle, F1, Echo
 };
+volatile State_t state = State_t::Idle;
 
-State state = State::Idle;
 uint16_t hundredths_of_seconds_since_ignition_bit_on = 0;
 uint16_t hundredths_of_seconds_since_last_130 = 0;
 uint8_t hundredths_of_seconds_since_last_led_flip = 0;
@@ -59,16 +60,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 #ifdef DEBUG
 		switch (state)
 		{
-		case State::Idle:
+		case State_t::Idle:
 			uart_controller_1.write_bytes("Idle\r\n", 6);
 			break;
-		case State::F1:
+		case State_t::F1:
 			uart_controller_1.write_bytes("F1\r\n", 4);
 			break;
-		case State::PreIdle:
+		case State_t::PreIdle:
 			uart_controller_1.write_bytes("PreIdle\r\n", 9);
 			break;
-		case State::Echo:
+		case State_t::Echo:
 			uart_controller_1.write_bytes("Echo\r\n", 6);
 			break;
 		}
@@ -81,7 +82,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		switch (state)
 		{
-		case State::Echo:
+		case State_t::Echo:
 			if (received_130_frame)
 			{
 				rx_can_message_t dummy_130_frame;
@@ -110,19 +111,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		bool flip = false;
 		switch (state)
 		{
-		case State::Idle:
+		case State_t::Idle:
 			if (hundredths_of_seconds_since_last_led_flip >= 200 - 1) // 0.5 Hz
 				flip = true;
 			break;
-		case State::PreIdle:
+		case State_t::PreIdle:
 			if (hundredths_of_seconds_since_last_led_flip >= 100 - 1) // 1 Hz
 				flip = true;
 			break;
-		case State::F1:
+		case State_t::F1:
 			if (hundredths_of_seconds_since_last_led_flip >= 5 - 1) // 20 Hz
 				flip = true;
 			break;
-		case State::Echo:
+		case State_t::Echo:
 			if (hundredths_of_seconds_since_last_led_flip >= 20 - 1) // 5 Hz
 				flip = true;
 			break;
@@ -141,9 +142,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		switch (state)
 		{
-		case State::F1:
-		case State::PreIdle:
-		case State::Echo:
+		case State_t::F1:
+		case State_t::PreIdle:
+		case State_t::Echo:
 			if (hundredths_of_seconds_since_ignition_bit_on
 					< SHUTDOWN_DELAY_HUNDREDTHS_OF_SECONDS)
 				hundredths_of_seconds_since_ignition_bit_on++;
@@ -159,11 +160,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 			switch (state)
 			{
-			case State::F1:
-				state = State::PreIdle;
+			case State_t::F1:
+				state = State_t::PreIdle;
 				break;
-			case State::Echo:
-				state = State::Idle;
+			case State_t::Echo:
+				state = State_t::Idle;
 				break;
 			default:
 				break;
@@ -172,8 +173,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		switch (state)
 		{
-		case State::F1:
-		case State::PreIdle:
+		case State_t::F1:
+		case State_t::PreIdle:
 			if (hundredths_of_seconds_since_last_130
 					< ECHO_130_DELAY_HUNDREDTHS_OF_SECONDS)
 				hundredths_of_seconds_since_last_130++;
@@ -190,11 +191,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 			switch (state)
 			{
-			case State::F1:
-				state = State::Echo;
+			case State_t::F1:
+				state = State_t::Echo;
 				break;
-			case State::PreIdle:
-				state = State::Idle;
+			case State_t::PreIdle:
+				state = State_t::Idle;
 				break;
 			default:
 				break;
@@ -263,24 +264,24 @@ bool process_can_message(rx_can_message_t *rx_can_message,
 
 			switch (state)
 			{
-			case State::Idle:
-			case State::Echo:
+			case State_t::Idle:
+			case State_t::Echo:
 				hundredths_of_seconds_since_ignition_bit_on = 0;
-				state = State::F1;
+				state = State_t::F1;
 				break;
-			case State::F1:
-			case State::PreIdle:
+			case State_t::F1:
+			case State_t::PreIdle:
 				if (ignition_on)
 				{
 					hundredths_of_seconds_since_ignition_bit_on = 0;
-					state = State::F1;
+					state = State_t::F1;
 				}
 				break;
 			}
 
 			switch (state)
 			{
-			case State::F1:
+			case State_t::F1:
 				rx_can_message->RxData[0] |= 0x01;
 				break;
 			default:
@@ -295,6 +296,36 @@ bool process_can_message(rx_can_message_t *rx_can_message,
 
 int app_main(void)
 {
+	FDCAN_FilterTypeDef sFilterConfig;
+	sFilterConfig.IdType = FDCAN_STANDARD_ID;
+	sFilterConfig.FilterIndex = 0;
+	sFilterConfig.FilterType = FDCAN_FILTER_MASK;
+	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO1;
+	sFilterConfig.FilterID1 = 0x7A4; // 1956
+	sFilterConfig.FilterID2 = 0x7FF; // 11 bits (2047)
+
+	HAL_StatusTypeDef hfdcan1_status = HAL_FDCAN_ConfigFilter(&hfdcan1,
+			&sFilterConfig);
+	HAL_StatusTypeDef hfdcan2_status = HAL_FDCAN_ConfigFilter(&hfdcan2,
+			&sFilterConfig);
+
+	HAL_StatusTypeDef hfdcan1_global_status = HAL_FDCAN_ConfigGlobalFilter(
+			&hfdcan1,
+			FDCAN_ACCEPT_IN_RX_FIFO0,
+			FDCAN_ACCEPT_IN_RX_FIFO0,
+			FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE);
+
+	HAL_StatusTypeDef hfdcan2_global_status = HAL_FDCAN_ConfigGlobalFilter(
+			&hfdcan2,
+			FDCAN_ACCEPT_IN_RX_FIFO0,
+			FDCAN_ACCEPT_IN_RX_FIFO0,
+			FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE);
+
+	if (hfdcan1_status != HAL_OK || hfdcan2_status != HAL_OK
+			|| hfdcan1_global_status != HAL_OK
+			|| hfdcan2_global_status != HAL_OK)
+		Error_Handler();
+
 	can_controller_1.init(&hfdcan1);
 	can_controller_2.init(&hfdcan2);
 
@@ -306,9 +337,9 @@ int app_main(void)
 
 	for (uint8_t i = 0; i < 8; i++)
 		uart_controller_1.write_bytes("\r\n", 2);
-	uart_controller_1.write_bytes("=======================\r\n",25);
-	uart_controller_1.write_bytes(" BMW F20 AHU CAN Relay \r\n",25);
-	uart_controller_1.write_bytes("=======================\r\n",25);
+	uart_controller_1.write_bytes("=======================\r\n", 25);
+	uart_controller_1.write_bytes(" BMW F20 AHU CAN Relay \r\n", 25);
+	uart_controller_1.write_bytes("=======================\r\n", 25);
 
 	uint8_t data;
 #endif
@@ -361,12 +392,10 @@ int app_main(void)
 		{
 			uart_controller_1.write_byte(data);
 			if (data == 'r')
-			{
 				flag_bootloader();
-				NVIC_SystemReset();
-			}
 		}
 #endif
+
 		if (can_controller_1.read_message_0(&rx_can_message))
 		{
 			// Message incoming from head-unit
@@ -380,6 +409,32 @@ int app_main(void)
 			bool processed = process_can_message(&rx_can_message, false);
 			if (processed)
 				can_controller_2.pop_message_0();
+		}
+
+		bool received_programming_frame = false;
+		if (can_controller_1.read_message_1(&rx_can_message))
+		{
+			// Message incoming from head-unit with programming ID
+			can_controller_1.pop_message_1();
+			received_programming_frame = true;
+		}
+		if (can_controller_2.read_message_1(&rx_can_message))
+		{
+			// Message incoming from car with programming ID
+			can_controller_2.pop_message_1();
+			received_programming_frame = true;
+		}
+		if (received_programming_frame)
+		{
+			if (rx_can_message.RxData[0] == PROG_GO_TO_BL_DATA_0
+					&& rx_can_message.RxData[1] == PROG_GO_TO_BL_DATA_1
+					&& rx_can_message.RxData[2] == PROG_GO_TO_BL_DATA_2
+					&& rx_can_message.RxData[3] == PROG_GO_TO_BL_DATA_3
+					&& rx_can_message.RxData[4] == PROG_GO_TO_BL_DATA_4
+					&& rx_can_message.RxData[5] == PROG_GO_TO_BL_DATA_5
+					&& rx_can_message.RxData[6] == PROG_GO_TO_BL_DATA_6
+					&& rx_can_message.RxData[7] == PROG_GO_TO_BL_DATA_7)
+				flag_bootloader();
 		}
 	}
 }
@@ -404,6 +459,8 @@ HAL_StatusTypeDef flag_bootloader()
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, FLAGS_ADDRESS, 1);
 	HAL_Delay(50);
 	HAL_FLASH_Lock();
+
+	NVIC_SystemReset();
 
 	return HAL_OK;
 }

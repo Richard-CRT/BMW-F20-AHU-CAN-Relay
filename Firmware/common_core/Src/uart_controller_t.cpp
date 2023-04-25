@@ -68,16 +68,18 @@ uint8_t uart_controller_t::write_tx_fifo_level()
 
 bool uart_controller_t::write_byte(uint8_t byte)
 {
+	bool success;
 	// Ensure interrupt doesn't occur while buffer is being changed
     HAL_NVIC_DisableIRQ(this->irqn);
-	bool success = this->tx_buf.push(byte);
-    HAL_NVIC_EnableIRQ(this->irqn);
-
 	if (huart->gState == HAL_UART_STATE_READY)
 	{
+		success = true;
 		this->transmitting_byte = byte;
 		HAL_UART_Transmit_IT(this->huart, &this->transmitting_byte, 1);
 	}
+	else
+		success = this->tx_buf.push(byte);
+    HAL_NVIC_EnableIRQ(this->irqn);
 
 	return success;
 }
@@ -85,9 +87,8 @@ bool uart_controller_t::write_byte(uint8_t byte)
 void uart_controller_t::tx_cplt_callback()
 {
 	// Called by an ISR, needs to be quick
-	this->tx_buf.pop();
 	uint8_t next_byte_to_transmit;
-	if (this->tx_buf.oldest(&next_byte_to_transmit))
+	if (this->tx_buf.pop(&next_byte_to_transmit))
 	{
 		this->transmitting_byte = next_byte_to_transmit;
 		HAL_UART_Transmit_IT(huart, &this->transmitting_byte, 1);

@@ -9,8 +9,8 @@
 
 #include "main.h"
 
-can_controller_t can_controller_1(FDCAN1_S_GPIO_Port, FDCAN1_S_Pin);
-can_controller_t can_controller_2(FDCAN2_S_GPIO_Port, FDCAN2_S_Pin);
+can_controller_t<512, 4> can_controller_1(FDCAN1_S_GPIO_Port, FDCAN1_S_Pin);
+can_controller_t<512, 4> can_controller_2(FDCAN2_S_GPIO_Port, FDCAN2_S_Pin);
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
