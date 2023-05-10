@@ -61,19 +61,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		switch (state)
 		{
 		case State_t::BLWaitingForAcknowledgement:
-			uart_controller_1.write_bytes("BLWaitingForAcknowledgement\r\n", 27);
+			uart_controller_1.write_bytes("BLWaitingForAcknowledgement\r\n", 29);
 			break;
 		case State_t::BLWaitingForFrameCount:
-			uart_controller_1.write_bytes("BLWaitingForFrameCount\r\n", 22);
+			uart_controller_1.write_bytes("BLWaitingForFrameCount\r\n", 24);
 			break;
 		case State_t::BLWaitingForCRC:
-			uart_controller_1.write_bytes("BLWaitingForCRC\r\n", 15);
+			uart_controller_1.write_bytes("BLWaitingForCRC\r\n", 17);
 			break;
 		case State_t::BLWaitingForChunkResync:
-			uart_controller_1.write_bytes("BLWaitingForChunkResync\r\n", 23);
+			uart_controller_1.write_bytes("BLWaitingForChunkResync\r\n", 25);
 			break;
 		case State_t::BLWaitingForChunkData:
-			uart_controller_1.write_bytes("BLWaitingForChunkData\r\n", 21);
+			uart_controller_1.write_bytes("BLWaitingForChunkData\r\n", 23);
 			break;
 		}
 #endif
@@ -81,22 +81,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		switch (state)
 		{
 		case State_t::BLWaitingForAcknowledgement:
-			can_controller_1.send_message(&TxHeader,
-					TxData_BLWaitingForAcknowledgement);
-			can_controller_2.send_message(&TxHeader,
-					TxData_BLWaitingForAcknowledgement);
+			//can_controller_1.send_message(&TxHeader,
+			//		TxData_BLWaitingForAcknowledgement);
+
+			// Seems to wake up car
+			//can_controller_2.send_message(&TxHeader,
+			//		TxData_BLWaitingForAcknowledgement);
 			break;
 		case State_t::BLWaitingForFrameCount:
-			can_controller_1.send_message(&TxHeader,
-					TxData_BLWaitingForFrameCount);
+			//can_controller_1.send_message(&TxHeader,
+			//		TxData_BLWaitingForFrameCount);
 			break;
 		case State_t::BLWaitingForCRC:
-			can_controller_1.send_message(&TxHeader,
-					TxData_BLWaitingForCRC);
+			//can_controller_1.send_message(&TxHeader,
+			//		TxData_BLWaitingForCRC);
 			break;
 		case State_t::BLWaitingForChunkResync:
-			can_controller_1.send_message(&TxHeader,
-					TxData_BLWaitingForChunkResync);
+			//can_controller_1.send_message(&TxHeader,
+			//		TxData_BLWaitingForChunkResync);
 			break;
 		case State_t::BLWaitingForChunkData:
 			break;
